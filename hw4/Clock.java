@@ -1,6 +1,9 @@
-// SimpleScene2.java
-// Slightly more complex scene, adds camera control via mouse
-// Also illustrates shading and lighting
+// CS461 HW4
+// Clock.java
+// Daniel Trauner and Will Potter
+// Time Spent: 5 hours
+
+// A 3D clock written in OpenGL using JOGL.
 
 package hw4;
 
