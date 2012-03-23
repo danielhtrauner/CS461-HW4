@@ -1,7 +1,7 @@
 // CS461 HW4
 // Clock.java
 // Daniel Trauner and Will Potter
-// Time Spent: 5 hours
+// Time Spent: 6 hours
 
 // A 3D clock written in OpenGL using JOGL.
 
@@ -27,9 +27,6 @@ import com.jogamp.opengl.util.awt.TextRenderer;
 
 
 public class Clock implements GLEventListener {
-    private double theta = 0;
-    private double dtheta = 0.5;
-
     private float aspect = 1;
     private double camDist = -3.60;
     private double camPhi = 0;    // horizontal (azimuth) angle
@@ -61,10 +58,10 @@ public class Clock implements GLEventListener {
         window.setSize(ww, wh);
         window.setVisible(true);
         window.setTitle("SimpleScene2");
-        //int sw = window.getScreen().getWidth();
+        int sw = window.getScreen().getWidth();
         //System.out.println(sw);
-        //window.setPosition((sw-ww)/2, 50);
-        window.setPosition(100, 50);
+        window.setPosition((sw-ww)/2, 50);
+       // window.setPosition(100, 50);
 
         window.addWindowListener(new WindowAdapter() {
                 public void windowDestroyNotify(WindowEvent arg0) {
@@ -81,7 +78,7 @@ public class Clock implements GLEventListener {
                     case KeyEvent.VK_SHIFT:
                         shiftKeyDown = true; break;
                     case KeyEvent.VK_A:
-                        dtheta += 0.01; break;
+                        break;
                     case KeyEvent.VK_UP:
                         camDist += shiftKeyDown ? 1 : .2; break;
                     case KeyEvent.VK_DOWN:
@@ -161,41 +158,49 @@ public class Clock implements GLEventListener {
     }
 
     private void update() {
-        theta += dtheta;
     }
 
     private void render(GLAutoDrawable drawable) {
     	Calendar c = Calendar.getInstance();
-    	
+
         GL2 gl = drawable.getGL().getGL2();
 
         gl.glShadeModel(GL2.GL_SMOOTH);
-        gl.glEnable(GL2.GL_CULL_FACE);
-        gl.glCullFace(GL2.GL_BACK);
-                
+
         gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);     
 
         // Sets the background color of our window to black (RGB alpha)
-        gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        gl.glClearColor(0.0f,0.0f,0.0f, 0.0f);
 
         // reset modelview matrix
         gl.glMatrixMode(GL2.GL_MODELVIEW);
         gl.glLoadIdentity();
                 
         setCam(gl);  // position camera
-        setLights(gl); // positions lights
-
+        setLights(gl,.5f,.5f,.9f);
+        
         // Draw Shapes Here
+        
+        // Draw Background Cube
         gl.glPushMatrix();
-        gl.glTranslated(0, 0, -.2);
-        gl.glColor3d(.8,.8,.8);
-        glut.glutSolidCylinder(1.5, .02, 100, 20);
-        gl.glColor3d(.1, .1, .1);
-        gl.glTranslated(0, 0, .02);
-        glut.glutSolidCylinder(1.3, .02, 100, 20);
+        gl.glTranslated(0, 0, -5);
+        glut.glutSolidCube(8);
         gl.glPopMatrix();
-        gl.glColor3d(.9, .3, .3);
+        
+        // Draw Back Clock Face
+        gl.glPushMatrix();
+        setLights(gl,1,1,1);
+        gl.glTranslated(0, 0, -1.5);
+        glut.glutSolidCylinder(1.5, 1, 100, 20);
 
+        // Draw Front Clock Face
+        gl.glTranslated(0, 0, 1);
+        setLights(gl,0,0,0);
+        glut.glutSolidCylinder(1.3, .1, 100, 20);
+        gl.glPopMatrix();
+        
+        // Draw Spheres for Clock Positions
+        setLights(gl,.8f,.4f,.4f);
         for(double i=30;i<=360;i+=30) {
         	double rad = i*Math.PI/180; 
         	double size = .05;
@@ -204,33 +209,49 @@ public class Clock implements GLEventListener {
 	        glut.glutSolidSphere(size, 20, 20);
 	        gl.glTranslated(-Math.cos(rad), -Math.sin(rad), 0);
         }
-        gl.glColor3d(.9,.9,.9);
         glut.glutSolidSphere(.05, 20, 20);
-
+        // Draw Hour Hand
         gl.glPushMatrix();
-        gl.glRotated(-90, Math.sin(hourToRotation(c.get(c.HOUR),c.get(c.MINUTE))), -Math.cos(hourToRotation(c.get(c.HOUR),c.get(c.MINUTE))), 0);
+        gl.glRotated(-90, Math.sin(hourToRotation(c.get(Calendar.HOUR),c.get(Calendar.MINUTE))), -Math.cos(hourToRotation(c.get(Calendar.HOUR),c.get(Calendar.MINUTE))), 0);
         glut.glutSolidCone(.05, .6, 20, 20);
         gl.glPopMatrix();
-        
+        // Draw Minute hand
         gl.glPushMatrix();
-        gl.glRotated(-90, Math.sin(minuteToRotation(c.get(c.MINUTE))), -Math.cos(minuteToRotation(c.get(c.MINUTE))), 0);
+        gl.glRotated(-90, Math.sin(minuteToRotation(c.get(Calendar.MINUTE))), -Math.cos(minuteToRotation(c.get(Calendar.MINUTE))), 0);
         glut.glutSolidCone(.05, .8, 20, 20);
         gl.glPopMatrix();
+        // Draw Second Hand
         gl.glPushMatrix();
-        gl.glRotated(-90, Math.sin(secondToRotation(c.get(c.SECOND))), -Math.cos(secondToRotation(c.get(c.SECOND))), 0);
+        gl.glRotated(-90, Math.sin(secondToRotation(c.get(Calendar.SECOND))), -Math.cos(secondToRotation(c.get(Calendar.SECOND))), 0);
         glut.glutSolidCone(.02, .8, 20, 20);
         gl.glPopMatrix();
-        // add text to screen
+
         //renderText(drawable);
 
         gl.glFlush();
     }
+    /**
+     * Input an hour on the clock and converts it into the degrees of rotation in radians.
+     * @param hour a double that represents the 12-number time format.
+     * @param minute a double that represents the number of minutes that have passed
+     * @return a double that represents the transformation rotation in radians
+     */
     public double hourToRotation(double hour,double minute) {
     	return (-(hour*30+minute*.5)+90)*Math.PI/180;
     }
+    /**
+     * 
+     * @param minute
+     * @return
+     */
     public double minuteToRotation(double minute) {
     	return (-(minute*6)+90)*Math.PI/180;
     }
+    /**
+     * 
+     * @param second
+     * @return
+     */
     public double secondToRotation(double second) {
     	return (-(second*6)+90)*Math.PI/180;
     }
@@ -246,30 +267,19 @@ public class Clock implements GLEventListener {
         setCam(gl);
     }
 
-    public void setLights(GL2 gl) {
-        float[] lightPos = {20, 10, 10, 1};
-        float[] lightAmbient = {0, 0, 0.0f, 1};
-        float[] lightDiffuse = {0.5f, 0.2f, 0.3f, 1};
-        float[] lightSpecular = {0.8f, 0.8f, 0.8f, 1};
+    public void setLights(GL2 gl,float r,float g, float b) {
+        float[] lightAmbient = {.2f, .2f, .2f, 1};
+        float[] lightSpecular = {0.5f, 0.5f, 0.5f, 1};
+        float[] lightDiffuse = {r, g, b, 1};
 
-        gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_POSITION, lightPos, 0);
-        gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_AMBIENT, lightAmbient, 0);
-        gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_DIFFUSE, lightDiffuse, 0);
-        gl.glLightfv(GL2.GL_LIGHT1, GL2.GL_SPECULAR, lightSpecular, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_AMBIENT, lightAmbient, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_DIFFUSE, lightDiffuse, 0);
+        gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, lightSpecular, 0);
 
-        if (lightMode == 1) {
-            gl.glDisable(GL2.GL_LIGHTING);
-            gl.glDisable(GL2.GL_LIGHT0);
-            gl.glDisable(GL2.GL_LIGHT1);
-        } else if (lightMode == 2) {
-            gl.glEnable(GL2.GL_LIGHTING);
-            gl.glEnable(GL2.GL_LIGHT0);
-            gl.glDisable(GL2.GL_LIGHT1);
-        } else { // mode 3
-            gl.glEnable(GL2.GL_LIGHTING);
-            gl.glDisable(GL2.GL_LIGHT0);
-            gl.glEnable(GL2.GL_LIGHT1);
-        }
+
+        gl.glEnable(GL2.GL_LIGHTING);
+        gl.glEnable(GL2.GL_LIGHT0);
+        gl.glDisable(GL2.GL_LIGHT1);
     }
 
     public void setCam(GL2 gl) {
@@ -279,7 +289,7 @@ public class Clock implements GLEventListener {
         gl.glLoadIdentity();
 
         double near = 1;
-        double far = 10;
+        double far = 20;
         glu.gluPerspective(45.0f, aspect, near, far);
                 
         // set camera location and angle
@@ -307,5 +317,4 @@ public class Clock implements GLEventListener {
         renderer.draw(st, 5, 5);
         renderer.endRendering();
     }
-
 }
